@@ -1,0 +1,47 @@
+{% extends "layouts/base.html" %}
+{% block title %}{{ template.name }} — CLM-lite{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-file-earmark-code"></i> {{ template.name }}</h2>
+    <a href="/templates/{{ template.id }}/builder" class="btn btn-primary"><i class="bi bi-tools"></i> Open Builder</a>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header">Template Info</div>
+            <div class="card-body">
+                <p><strong>Type:</strong> <span class="badge bg-secondary">{{ template.doc_type.value if template.doc_type.value is defined else template.doc_type }}</span></p>
+                <p><strong>Description:</strong> {{ template.description or 'No description' }}</p>
+                <p><strong>File:</strong> {{ template.file_path.split('/')[-1] if template.file_path else 'N/A' }}</p>
+                <p><strong>Active:</strong> {{ 'Yes' if template.is_active else 'No' }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Extracted Placeholders ({{ placeholders | length }})</div>
+            <div class="card-body">
+                {% if placeholders %}
+                <table class="table table-sm">
+                    <thead>
+                        <tr><th>Token</th><th>Source</th><th>Mapped To</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for ph in placeholders %}
+                        <tr>
+                            <td><code>{{ ph.token }}</code></td>
+                            <td><span class="badge bg-info">{{ ph.source.value if ph.source.value is defined else ph.source }}</span></td>
+                            <td>{{ ph.source_field or ph.default_value or '—' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted">No placeholders extracted.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "layouts/base.html" %}
+{% block title %}Upload Template — CLM-lite{% endblock %}
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-upload"></i> Upload Template</h2>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST" action="/templates/upload" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label class="form-label">Template Name</label>
+                <input type="text" name="name" class="form-control" required placeholder="e.g. Standard Service Agreement">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Document Type</label>
+                <select name="doc_type" class="form-select" required>
+                    {% for dt in doc_types %}
+                    <option value="{{ dt }}">{{ dt.replace('_', ' ').title() }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Description</label>
+                <textarea name="description" class="form-control" rows="3"></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">DOCX File</label>
+                <input type="file" name="file" class="form-control" accept=".docx" required>
+                <div class="form-text">Upload a .docx file with {{PLACEHOLDER}} tokens.</div>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-upload"></i> Upload & Extract Placeholders</button>
+            <a href="/templates" class="btn btn-outline-secondary ms-2">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

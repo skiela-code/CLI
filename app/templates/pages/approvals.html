@@ -1,0 +1,50 @@
+{% extends "layouts/base.html" %}
+{% block title %}Approvals — CLM-lite{% endblock %}
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-check-circle"></i> Approval Inbox</h2>
+
+{% if approval_data %}
+{% for item in approval_data %}
+{% set a = item.approval %}
+{% set doc = item.document %}
+<div class="card mb-3 {% if a.status.value == 'pending' %}border-warning{% endif %}">
+    <div class="card-header d-flex justify-content-between">
+        <div>
+            <strong>{{ doc.title if doc else 'Unknown Document' }}</strong>
+            <span class="badge bg-{{ 'warning' if a.status.value == 'pending' else ('success' if a.status.value == 'approved' else 'danger') }} ms-2">
+                {{ a.status.value | title }}
+            </span>
+        </div>
+        <small class="text-muted">{{ a.created_at.strftime('%Y-%m-%d %H:%M') if a.created_at else '' }}</small>
+    </div>
+    <div class="card-body">
+        {% if doc %}
+        <p><strong>Type:</strong> {{ doc.doc_type.value if doc.doc_type.value is defined else doc.doc_type }}
+           | <a href="/documents/{{ doc.id }}">View Document</a></p>
+        {% endif %}
+
+        {% if a.status.value == 'pending' %}
+        <form method="POST" action="/approvals/{{ a.id }}/decide" class="mt-2">
+            <div class="mb-2">
+                <label class="form-label">Comment (optional)</label>
+                <textarea name="comment" class="form-control" rows="2"></textarea>
+            </div>
+            <button type="submit" name="decision" value="approve" class="btn btn-success">
+                <i class="bi bi-check-lg"></i> Approve
+            </button>
+            <button type="submit" name="decision" value="reject" class="btn btn-danger ms-2">
+                <i class="bi bi-x-lg"></i> Reject
+            </button>
+        </form>
+        {% elif a.comment %}
+        <p><strong>Comment:</strong> {{ a.comment }}</p>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i> No approvals in your inbox.
+</div>
+{% endif %}
+{% endblock %}

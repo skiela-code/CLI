@@ -1,0 +1,32 @@
+{% extends "layouts/base.html" %}
+{% block title %}{{ 'Edit' if block else 'New' }} Block — CLM-lite{% endblock %}
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-grid-3x3"></i> {{ 'Edit' if block else 'New' }} Content Block</h2>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST" action="{% if block %}/blocks/{{ block.id }}/edit{% else %}/blocks/new{% endif %}">
+            <div class="mb-3">
+                <label class="form-label">Title</label>
+                <input type="text" name="title" class="form-control" value="{{ block.title if block else '' }}" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Body</label>
+                <textarea name="body" class="form-control" rows="6" required>{{ block.body if block else '' }}</textarea>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Category</label>
+                    <input type="text" name="category" class="form-control" value="{{ block.category if block and block.category else '' }}" placeholder="e.g. Legal, Technical, Commercial">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Tags (comma-separated)</label>
+                    <input type="text" name="tags" class="form-control" value="{{ block.tags | join(', ') if block and block.tags else '' }}" placeholder="e.g. SLA, warranty, support">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Save</button>
+            <a href="/blocks" class="btn btn-outline-secondary ms-2">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

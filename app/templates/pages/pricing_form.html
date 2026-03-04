@@ -1,0 +1,121 @@
+{% extends "layouts/base.html" %}
+{% block title %}{{ 'Edit' if table else 'New' }} Pricing Table — CLM-lite{% endblock %}
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-calculator"></i> {{ table.name if table else 'New Pricing Table' }}</h2>
+
+{% if not table %}
+<!-- Create form -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="POST" action="/pricing/new">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Name</label>
+                    <input type="text" name="name" class="form-control" required placeholder="e.g. Enterprise License Q1">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Tier</label>
+                    <select name="tier" class="form-select">
+                        <option value="good">Good</option>
+                        <option value="better">Better</option>
+                        <option value="best" selected>Best</option>
+                        <option value="standard">Standard</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Currency</label>
+                    <select name="currency" class="form-select">
+                        <option value="EUR">EUR</option>
+                        <option value="USD">USD</option>
+                        <option value="GBP">GBP</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Deal (optional)</label>
+                    <select name="deal_id" class="form-select">
+                        <option value="">— None —</option>
+                        {% for d in deals %}
+                        <option value="{{ d.id }}">{{ d.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary mt-3"><i class="bi bi-plus-lg"></i> Create Table</button>
+        </form>
+    </div>
+</div>
+{% else %}
+<!-- Existing table: show line items -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between">
+        <span>Line Items</span>
+        <span class="badge bg-secondary">{{ table.tier }} | {{ table.currency }}</span>
+    </div>
+    <div class="card-body">
+        {% if items %}
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th>Qty</th>
+                        <th>Unit Price</th>
+                        <th>Discount %</th>
+                        <th>Total</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td>{{ item.description }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>{{ "%.2f" | format(item.unit_price) }}</td>
+                        <td>{{ item.discount_pct }}%</td>
+                        <td><strong>{{ "%.2f" | format(item.quantity * item.unit_price * (1 - item.discount_pct / 100)) }}</strong></td>
+                        <td>
+                            <form method="POST" action="/pricing/{{ table.id }}/item/{{ item.id }}/delete" style="display:inline">
+                                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-dark">
+                        <td colspan="4" class="text-end"><strong>Grand Total</strong></td>
+                        <td><strong>{{ "%.2f" | format(grand_total) }} {{ table.currency }}</strong></td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted">No line items yet. Add one below.</p>
+        {% endif %}
+
+        <hr>
+        <h6>Add Line Item</h6>
+        <form method="POST" action="/pricing/{{ table.id }}/item">
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <input type="text" name="description" class="form-control form-control-sm" placeholder="Description" required>
+                </div>
+                <div class="col-md-2">
+                    <input type="number" name="quantity" class="form-control form-control-sm" value="1" step="0.1" min="0.1">
+                </div>
+                <div class="col-md-2">
+                    <input type="number" name="unit_price" class="form-control form-control-sm" placeholder="Unit Price" step="0.01" required>
+                </div>
+                <div class="col-md-2">
+                    <input type="number" name="discount_pct" class="form-control form-control-sm" value="0" step="0.1" min="0" max="100">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-sm btn-success w-100"><i class="bi bi-plus"></i> Add</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.env
+*.egg-info/
+dist/
+build/
+generated_docs/*
+!generated_docs/.gitkeep
+uploads/*
+!uploads/.gitkeep
+.pytest_cache/
+htmlcov/

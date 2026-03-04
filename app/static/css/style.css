@@ -1,0 +1,4 @@
+/* CLM-lite custom styles — kept minimal, Bootstrap handles most things */
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+.htmx-indicator { display: none; }
+.htmx-request .htmx-indicator { display: inline-block; }
