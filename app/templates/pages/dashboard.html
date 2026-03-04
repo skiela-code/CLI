@@ -1,0 +1,89 @@
+{% extends "layouts/base.html" %}
+{% block title %}Dashboard — CLM-lite{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Dashboard</h2>
+    {% if unread_count > 0 %}
+    <a href="/notifications" class="btn btn-outline-warning">
+        <i class="bi bi-bell-fill"></i> {{ unread_count }} unread notification{{ 's' if unread_count != 1 }}
+    </a>
+    {% endif %}
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card border-primary h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-rocket-takeoff display-4 text-primary"></i>
+                <h5 class="mt-3">Quick Start</h5>
+                <p class="text-muted small">Generate a document in 3 steps</p>
+                <a href="/documents/generate" class="btn btn-primary">
+                    <i class="bi bi-plus-lg"></i> Generate Document
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-success h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-briefcase display-4 text-success"></i>
+                <h5 class="mt-3">Deals</h5>
+                <p class="text-muted small">Browse and sync Pipedrive deals</p>
+                <a href="/deals" class="btn btn-success">View Deals</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-info h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-search display-4 text-info"></i>
+                <h5 class="mt-3">Global Search</h5>
+                <p class="text-muted small">Search across all documents and templates</p>
+                <a href="/search" class="btn btn-info text-white">Search</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h6><i class="bi bi-file-earmark-code"></i> Templates</h6>
+                <p class="text-muted small">Manage document templates</p>
+                <a href="/templates" class="btn btn-sm btn-outline-secondary">View</a>
+                <a href="/templates/upload" class="btn btn-sm btn-outline-primary">Upload</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h6><i class="bi bi-grid-3x3"></i> Content Blocks</h6>
+                <p class="text-muted small">Reusable content sections</p>
+                <a href="/blocks" class="btn btn-sm btn-outline-secondary">View</a>
+                <a href="/blocks/new" class="btn btn-sm btn-outline-primary">New</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h6><i class="bi bi-calculator"></i> Pricing</h6>
+                <p class="text-muted small">Build pricing tables</p>
+                <a href="/pricing" class="btn btn-sm btn-outline-secondary">View</a>
+                <a href="/pricing/new" class="btn btn-sm btn-outline-primary">New</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h6><i class="bi bi-check-circle"></i> Approvals</h6>
+                <p class="text-muted small">Review pending approvals</p>
+                <a href="/approvals" class="btn btn-sm btn-outline-secondary">Inbox</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

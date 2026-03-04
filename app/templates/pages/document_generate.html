@@ -1,0 +1,72 @@
+{% extends "layouts/base.html" %}
+{% block title %}Generate Document — CLM-lite{% endblock %}
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-magic"></i> Generate Document</h2>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST" action="/documents/generate">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Document Title</label>
+                    <input type="text" name="title" class="form-control" required placeholder="e.g. Acme Corp — Service Agreement">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Document Type</label>
+                    <select name="doc_type" class="form-select" required>
+                        {% for dt in doc_types %}
+                        <option value="{{ dt }}">{{ dt.replace('_', ' ').title() }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Deal</label>
+                    <select name="deal_id" class="form-select">
+                        <option value="">— No deal —</option>
+                        {% for d in deals %}
+                        <option value="{{ d.id }}">{{ d.title }} ({{ d.org_name or '' }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Template</label>
+                    <select name="template_id" class="form-select">
+                        <option value="">— No template —</option>
+                        {% for t in templates_list %}
+                        <option value="{{ t.id }}">{{ t.name }} ({{ t.doc_type.value if t.doc_type.value is defined else t.doc_type }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Pricing Table</label>
+                    <select name="pricing_table_id" class="form-select">
+                        <option value="">— No pricing —</option>
+                        {% for p in pricing_tables %}
+                        <option value="{{ p.id }}">{{ p.name }} ({{ p.tier }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">AI Narrative Length</label>
+                    <select name="length" class="form-select">
+                        <option value="short">Short</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="long">Long</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="alert alert-info mt-3">
+                <i class="bi bi-info-circle"></i>
+                The system will resolve placeholders, generate AI sections, render DOCX, and run red-flag checks.
+                This happens in the background — you'll see the result on the document detail page.
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg mt-2">
+                <i class="bi bi-lightning-charge"></i> Generate Document
+            </button>
+            <a href="/documents" class="btn btn-outline-secondary btn-lg mt-2 ms-2">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

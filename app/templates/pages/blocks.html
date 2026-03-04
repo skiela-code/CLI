@@ -1,0 +1,58 @@
+{% extends "layouts/base.html" %}
+{% block title %}Content Blocks — CLM-lite{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-grid-3x3"></i> Content Blocks</h2>
+    <a href="/blocks/new" class="btn btn-primary"><i class="bi bi-plus-lg"></i> New Block</a>
+</div>
+
+<!-- Category filter -->
+{% if categories %}
+<div class="mb-3">
+    <a href="/blocks" class="btn btn-sm {% if not current_category %}btn-secondary{% else %}btn-outline-secondary{% endif %}">All</a>
+    {% for cat in categories %}
+    <a href="/blocks?category={{ cat }}" class="btn btn-sm {% if current_category == cat %}btn-secondary{% else %}btn-outline-secondary{% endif %}">{{ cat }}</a>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if blocks %}
+<div class="row g-3">
+    {% for block in blocks %}
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between">
+                <strong>{{ block.title }}</strong>
+                {% if block.category %}
+                <span class="badge bg-info">{{ block.category }}</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <p class="card-text">{{ block.body[:200] }}{% if block.body|length > 200 %}...{% endif %}</p>
+                {% if block.tags %}
+                <div>
+                    {% for tag in block.tags %}
+                    <span class="badge bg-light text-dark">{{ tag }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer">
+                <a href="/blocks/{{ block.id }}/edit" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i> Edit</a>
+                <form method="POST" action="/blocks/{{ block.id }}/delete" style="display: inline;" onsubmit="return confirm('Delete this block?')">
+                    <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                </form>
+                {% if block.is_approved %}
+                <span class="badge bg-success ms-2">Approved</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i> No content blocks yet. <a href="/blocks/new">Create your first block</a>.
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "layouts/base.html" %}
+{% block title %}Template Builder — {{ template.name }}{% endblock %}
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-tools"></i> Template Builder: {{ template.name }}</h2>
+
+<form method="POST" action="/templates/{{ template.id }}/builder">
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> Map each placeholder to a data source. Changes are saved when you click Save.
+    </div>
+
+    {% for ph in placeholders %}
+    <div class="card mb-3">
+        <div class="card-header">
+            <code>{{ ph.token }}</code>
+            <span class="text-muted ms-2">{{ ph.label or '' }}</span>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Source Type</label>
+                    <select name="source_{{ ph.id }}" class="form-select source-select" data-ph="{{ ph.id }}">
+                        {% for s in sources %}
+                        <option value="{{ s }}" {% if (ph.source.value if ph.source.value is defined else ph.source) == s %}selected{% endif %}>
+                            {{ s.replace('_', ' ').title() }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Deal/Client Field</label>
+                    <select name="field_{{ ph.id }}" class="form-select">
+                        <option value="">— Select —</option>
+                        {% for f in deal_fields %}
+                        <option value="{{ f }}" {% if ph.source_field == f %}selected{% endif %}>{{ f }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Content Block</label>
+                    <select name="block_{{ ph.id }}" class="form-select">
+                        <option value="">— None —</option>
+                        {% for b in blocks %}
+                        <option value="{{ b.id }}" {% if ph.content_block_id and ph.content_block_id|string == b.id|string %}selected{% endif %}>
+                            {{ b.title }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Default Value</label>
+                    <input type="text" name="default_{{ ph.id }}" class="form-control" value="{{ ph.default_value or '' }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label">AI Prompt (if source = AI Generated)</label>
+                    <textarea name="ai_prompt_{{ ph.id }}" class="form-control" rows="2">{{ ph.ai_prompt or '' }}</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Save Mappings</button>
+        <a href="/templates/{{ template.id }}" class="btn btn-outline-secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}

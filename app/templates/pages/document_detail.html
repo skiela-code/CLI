@@ -1,0 +1,145 @@
+{% extends "layouts/base.html" %}
+{% block title %}{{ doc.title }} — CLM-lite{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-file-earmark-richtext"></i> {{ doc.title }}</h2>
+    {% set status_colors = {'draft': 'warning', 'pending_approval': 'info', 'approved': 'success', 'rejected': 'danger', 'sent': 'primary'} %}
+    <span class="badge bg-{{ status_colors.get(doc.status.value if doc.status.value is defined else doc.status, 'secondary') }} fs-6">
+        {{ (doc.status.value if doc.status.value is defined else doc.status).replace('_', ' ').title() }}
+    </span>
+</div>
+
+{% if task_status == 'running' %}
+<div class="alert alert-info" hx-get="/documents/{{ doc.id }}" hx-trigger="every 3s" hx-select=".alert" hx-swap="outerHTML">
+    <div class="spinner-border spinner-border-sm" role="status"></div>
+    Generation in progress... This page will auto-refresh.
+</div>
+{% endif %}
+
+<div class="row">
+    <!-- Document Info -->
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header">Document Info</div>
+            <div class="card-body">
+                <p><strong>Type:</strong> {{ doc.doc_type.value if doc.doc_type.value is defined else doc.doc_type }}</p>
+                <p><strong>Deal:</strong> {{ doc.deal_id or 'None' }}</p>
+                <p><strong>Template:</strong> {{ doc.template_id or 'None' }}</p>
+                <p><strong>Created:</strong> {{ doc.created_at.strftime('%Y-%m-%d %H:%M') if doc.created_at else '' }}</p>
+            </div>
+        </div>
+
+        <!-- Versions -->
+        <div class="card mb-3">
+            <div class="card-header">Versions ({{ versions | length }})</div>
+            <div class="card-body">
+                {% if versions %}
+                <table class="table table-sm">
+                    <thead>
+                        <tr><th>Version</th><th>Created</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for v in versions %}
+                        <tr>
+                            <td>v{{ v.version_number }}</td>
+                            <td>{{ v.created_at.strftime('%Y-%m-%d %H:%M') if v.created_at else '' }}</td>
+                            <td>
+                                <a href="/documents/{{ doc.id }}/download/{{ v.id }}" class="btn btn-sm btn-outline-success">
+                                    <i class="bi bi-download"></i> Download
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted">No versions generated yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Attach to Pipedrive -->
+        {% if doc.deal_id %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <form method="POST" action="/documents/{{ doc.id }}/attach-pipedrive">
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="bi bi-cloud-upload"></i> Attach to Pipedrive Deal
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Red Flags + Approvals -->
+    <div class="col-md-6">
+        <!-- Red Flags -->
+        <div class="card mb-3">
+            <div class="card-header">
+                Red Flags
+                {% if doc.red_flags and doc.red_flags.summary %}
+                    <span class="badge bg-{{ 'danger' if doc.red_flags.summary.critical > 0 else ('warning' if doc.red_flags.summary.warning > 0 else 'success') }} ms-2">
+                        {{ doc.red_flags.summary.total }} issue{{ 's' if doc.red_flags.summary.total != 1 }}
+                    </span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if doc.red_flags and doc.red_flags.flags %}
+                    {% for flag in doc.red_flags.flags %}
+                    <div class="alert alert-{{ 'danger' if flag.type == 'critical' else 'warning' }} py-2 px-3 red-flag-{{ flag.type }}">
+                        <strong>{{ flag.category | replace('_', ' ') | title }}:</strong> {{ flag.message }}
+                    </div>
+                    {% endfor %}
+                {% elif doc.red_flags %}
+                    <div class="alert alert-success py-2"><i class="bi bi-check-circle"></i> No red flags detected.</div>
+                {% else %}
+                    <p class="text-muted">Red flags not yet checked.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Request Approval -->
+        <div class="card mb-3">
+            <div class="card-header">Approval</div>
+            <div class="card-body">
+                {% if versions %}
+                <form method="POST" action="/documents/{{ doc.id }}/approve/request">
+                    <div class="mb-2">
+                        <label class="form-label">Select Approver</label>
+                        <select name="approver_id" class="form-select" required>
+                            {% for u in users %}
+                            <option value="{{ u.id }}">{{ u.name }} ({{ u.email }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-outline-info">
+                        <i class="bi bi-send"></i> Send for Approval
+                    </button>
+                </form>
+                {% else %}
+                <p class="text-muted">Generate a version first before requesting approval.</p>
+                {% endif %}
+
+                {% if approvals %}
+                <hr>
+                <h6>Approval History</h6>
+                {% for a in approvals %}
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <span class="badge bg-{{ 'success' if a.status.value == 'approved' else ('danger' if a.status.value == 'rejected' else 'secondary') }}">
+                            {{ a.status.value | title }}
+                        </span>
+                        {% if a.comment %}
+                        <small class="text-muted ms-2">{{ a.comment }}</small>
+                        {% endif %}
+                    </div>
+                    <small class="text-muted">{{ a.created_at.strftime('%Y-%m-%d') if a.created_at else '' }}</small>
+                </div>
+                {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

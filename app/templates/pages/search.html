@@ -1,0 +1,99 @@
+{% extends "layouts/base.html" %}
+{% block title %}Search — CLM-lite{% endblock %}
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-search"></i> Global Search</h2>
+
+<form method="GET" class="row g-2 mb-4">
+    <div class="col-md-5">
+        <input type="text" name="q" class="form-control form-control-lg" placeholder="Search documents, templates, blocks, deals..." value="{{ query }}">
+    </div>
+    <div class="col-md-2">
+        <select name="doc_type" class="form-select form-select-lg">
+            <option value="">All types</option>
+            <option value="contract" {% if doc_type == 'contract' %}selected{% endif %}>Contract</option>
+            <option value="nda" {% if doc_type == 'nda' %}selected{% endif %}>NDA</option>
+            <option value="purchase_annex" {% if doc_type == 'purchase_annex' %}selected{% endif %}>Purchase Annex</option>
+            <option value="commercial_offer" {% if doc_type == 'commercial_offer' %}selected{% endif %}>Commercial Offer</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select name="status" class="form-select form-select-lg">
+            <option value="">All statuses</option>
+            <option value="draft" {% if status == 'draft' %}selected{% endif %}>Draft</option>
+            <option value="pending_approval" {% if status == 'pending_approval' %}selected{% endif %}>Pending</option>
+            <option value="approved" {% if status == 'approved' %}selected{% endif %}>Approved</option>
+            <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>Rejected</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <input type="text" name="category" class="form-control form-control-lg" placeholder="Category" value="{{ category }}">
+    </div>
+    <div class="col-md-1">
+        <button type="submit" class="btn btn-primary btn-lg w-100"><i class="bi bi-search"></i></button>
+    </div>
+</form>
+
+{% if results %}
+    {% set total = results.documents|length + results.templates|length + results.blocks|length + results.deals|length %}
+    <p class="text-muted">{{ total }} result{{ 's' if total != 1 }} for "{{ query }}"</p>
+
+    {% if results.documents %}
+    <h5><i class="bi bi-file-earmark-richtext"></i> Documents ({{ results.documents|length }})</h5>
+    <div class="list-group mb-4">
+        {% for r in results.documents %}
+        <a href="/documents/{{ r.id }}" class="list-group-item list-group-item-action">
+            <div class="d-flex justify-content-between">
+                <strong>{{ r.title }}</strong>
+                <div>
+                    <span class="badge bg-secondary">{{ r.doc_type }}</span>
+                    <span class="badge bg-info">{{ r.status }}</span>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if results.templates %}
+    <h5><i class="bi bi-file-earmark-code"></i> Templates ({{ results.templates|length }})</h5>
+    <div class="list-group mb-4">
+        {% for r in results.templates %}
+        <a href="/templates/{{ r.id }}" class="list-group-item list-group-item-action">
+            <strong>{{ r.title }}</strong>
+            <span class="badge bg-secondary ms-2">{{ r.doc_type }}</span>
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if results.blocks %}
+    <h5><i class="bi bi-grid-3x3"></i> Content Blocks ({{ results.blocks|length }})</h5>
+    <div class="list-group mb-4">
+        {% for r in results.blocks %}
+        <a href="/blocks/{{ r.id }}/edit" class="list-group-item list-group-item-action">
+            <strong>{{ r.title }}</strong>
+            {% if r.category %}<span class="badge bg-info ms-2">{{ r.category }}</span>{% endif %}
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if results.deals %}
+    <h5><i class="bi bi-briefcase"></i> Deals ({{ results.deals|length }})</h5>
+    <div class="list-group mb-4">
+        {% for r in results.deals %}
+        <div class="list-group-item">
+            <strong>{{ r.title }}</strong>
+            {% if r.org_name %}<span class="text-muted ms-2">{{ r.org_name }}</span>{% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if total == 0 %}
+    <div class="alert alert-warning">No results found for "{{ query }}".</div>
+    {% endif %}
+{% elif query %}
+    <div class="alert alert-warning">No results found for "{{ query }}".</div>
+{% endif %}
+{% endblock %}
