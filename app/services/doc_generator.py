@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.database import async_session_factory
 from app.core.logging import log
-from app.integrations.claude_ai import ClaudeProvider
+from app.integrations.llm_router import get_llm_router
 from app.models.models import (
     ContentBlock,
     Deal,
@@ -96,7 +96,7 @@ async def _generate_document(document_id: str, options: dict[str, Any]) -> None:
                 placeholders_q = await db.execute(
                     select(TemplatePlaceholder).where(TemplatePlaceholder.template_id == template.id)
                 )
-                ai_provider = ClaudeProvider()
+                router = get_llm_router()
                 deal_ctx = {
                     "title": deal.title if deal else "N/A",
                     "org_name": deal.org_name if deal else "N/A",
@@ -133,7 +133,11 @@ async def _generate_document(document_id: str, options: dict[str, Any]) -> None:
 
                     elif ph.source == PlaceholderSource.AI_GENERATED:
                         prompt = ph.ai_prompt or f"Generate content for: {ph.label or ph.token}"
-                        value = await ai_provider.generate_section(prompt, deal_ctx)
+                        system = "You are a document section writer. Generate professional content."
+                        user_msg = f"{prompt}\n\nContext:\n"
+                        for ctx_k, ctx_v in deal_ctx.items():
+                            user_msg += f"  {ctx_k}: {ctx_v}\n"
+                        value = await router.generate(system, user_msg)
                         generated_sections[ph.token] = value
 
                     replacements[ph.token] = value
@@ -146,10 +150,32 @@ async def _generate_document(document_id: str, options: dict[str, Any]) -> None:
                 # For commercial offers, generate narrative
                 length = options.get("length", "medium")
                 if doc.doc_type == DocType.COMMERCIAL_OFFER or doc.doc_type == "commercial_offer":
-                    narrative = await ai_provider.generate_narrative(
-                        deal_ctx, pricing_items, length=length,
-                        doc_type="commercial_offer",
+                    narrative_system = (
+                        "You are a professional proposal writer. Generate clear, persuasive "
+                        "business document sections. Use the pricing data as the single source of truth. "
+                        "Do NOT invent prices or quantities — reference them from the provided table."
                     )
+                    narrative_user = (
+                        f"Document type: commercial_offer\n"
+                        f"Length: {length}\n"
+                        f"Deal: {deal_ctx.get('title', 'N/A')}\n"
+                        f"Client: {deal_ctx.get('org_name', 'N/A')}\n"
+                        f"Contact: {deal_ctx.get('contact_name', 'N/A')}\n\n"
+                        f"Pricing table:\n"
+                    )
+                    for p_item in pricing_items:
+                        narrative_user += (
+                            f"  - {p_item['description']}: {p_item['quantity']}x @ {p_item['unit_price']} "
+                            f"(discount {p_item.get('discount_pct', 0)}%)\n"
+                        )
+                    narrative_user += (
+                        "\nWrite a professional narrative section that:\n"
+                        "1. Introduces the solution\n"
+                        "2. References the pricing accurately\n"
+                        "3. Highlights value propositions\n"
+                        "4. Includes next steps\n"
+                    )
+                    narrative = await router.generate(narrative_system, narrative_user)
                     generated_sections["narrative"] = narrative
                     # Fill AI placeholders if not already filled
                     for key in ["{{AI_EXECUTIVE_SUMMARY}}", "{{AI_SOLUTION_DESCRIPTION}}",

@@ -1,0 +1,33 @@
+{% extends "layouts/base.html" %}
+{% block title %}System Health — CLM-lite{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-heart-pulse"></i> System Health</h2>
+    <a href="/admin/settings" class="btn btn-outline-secondary btn-sm"><i class="bi bi-gear"></i> Settings</a>
+</div>
+
+<div class="row g-3">
+    {% for name, check in checks.items() %}
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="card-title mb-0">{{ name | replace('_', ' ') | title }}</h6>
+                    {% if check.status == 'ok' %}
+                    <span class="badge bg-success">OK</span>
+                    {% elif check.status == 'warning' %}
+                    <span class="badge bg-warning text-dark">Warning</span>
+                    {% elif check.status == 'info' %}
+                    <span class="badge bg-info">Info</span>
+                    {% else %}
+                    <span class="badge bg-danger">Error</span>
+                    {% endif %}
+                </div>
+                <small class="text-muted">{{ check.message }}</small>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

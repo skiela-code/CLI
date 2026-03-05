@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CLM-lite Setup Wizard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <style>
+        body { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); min-height: 100vh; }
+        .wizard-card { max-width: 600px; margin: 0 auto; }
+        .step-indicator { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1.5rem; }
+        .step-dot { width: 12px; height: 12px; border-radius: 50%; background: #6c757d; }
+        .step-dot.active { background: #0d6efd; }
+        .step-dot.done { background: #198754; }
+    </style>
+</head>
+<body class="d-flex align-items-center py-4">
+    <div class="container">
+        <div class="wizard-card">
+            <div class="text-center text-white mb-4">
+                <h2><i class="bi bi-file-earmark-text"></i> CLM-lite</h2>
+                <p class="text-white-50">Setup Wizard</p>
+            </div>
+
+            <div class="step-indicator" id="step-indicators">
+                <div class="step-dot active" id="dot-1"></div>
+                <div class="step-dot" id="dot-2"></div>
+                <div class="step-dot" id="dot-3"></div>
+                <div class="step-dot" id="dot-4"></div>
+            </div>
+
+            <!-- Step 1: Admin Account -->
+            <div id="step-1" class="card shadow">
+                <div class="card-body p-4">
+                    <h4 class="card-title mb-3"><i class="bi bi-person-plus"></i> Create Admin Account</h4>
+                    <p class="text-muted">Set up the first administrator account.</p>
+                    <div id="admin-result"></div>
+                    <form hx-post="/setup/step/admin" hx-target="#admin-result" hx-swap="innerHTML">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="name" name="name" placeholder="Admin User">
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="email" name="email" required placeholder="admin@company.com">
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="password" name="password" required minlength="8" placeholder="Min. 8 characters">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Create Admin &amp; Continue</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Step 2: AI Provider -->
+            <div id="step-2" class="card shadow d-none">
+                <div class="card-body p-4">
+                    <h4 class="card-title mb-3"><i class="bi bi-robot"></i> AI Provider</h4>
+                    <p class="text-muted">Configure the AI provider for document generation.</p>
+                    <div id="ai-result"></div>
+                    <form hx-post="/setup/step/ai-provider" hx-target="#ai-result" hx-swap="innerHTML">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="mock_mode" name="mock_mode" checked onchange="toggleAIConfig(this)">
+                            <label class="form-check-label" for="mock_mode">Mock Mode (no API key needed)</label>
+                        </div>
+
+                        <div id="ai-config" class="d-none">
+                            <div class="mb-3">
+                                <label class="form-label">Primary Provider</label>
+                                <select class="form-select" name="primary_provider" onchange="toggleProviderFields(this)">
+                                    <option value="anthropic" selected>Anthropic (Claude)</option>
+                                    <option value="openrouter">OpenRouter</option>
+                                </select>
+                            </div>
+
+                            <div id="anthropic-fields">
+                                <div class="mb-3">
+                                    <label class="form-label">Anthropic API Key</label>
+                                    <input type="password" class="form-control" name="anthropic_api_key" placeholder="sk-ant-...">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Model</label>
+                                    <input type="text" class="form-control" name="anthropic_model" value="claude-sonnet-4-20250514">
+                                </div>
+                            </div>
+
+                            <div id="openrouter-fields" class="d-none">
+                                <div class="mb-3">
+                                    <label class="form-label">OpenRouter API Key</label>
+                                    <input type="password" class="form-control" name="openrouter_api_key" placeholder="sk-or-...">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Model</label>
+                                    <input type="text" class="form-control" name="openrouter_model" placeholder="anthropic/claude-3.5-sonnet">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Base URL (optional)</label>
+                                    <input type="text" class="form-control" name="openrouter_base_url" placeholder="https://openrouter.ai/api/v1/chat/completions">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Fallback Provider</label>
+                                <select class="form-select" name="fallback_provider">
+                                    <option value="mock" selected>Mock (safe default)</option>
+                                    <option value="anthropic">Anthropic</option>
+                                    <option value="openrouter">OpenRouter</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">Save &amp; Continue</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Step 3: Integrations -->
+            <div id="step-3" class="card shadow d-none">
+                <div class="card-body p-4">
+                    <h4 class="card-title mb-3"><i class="bi bi-plug"></i> Integrations</h4>
+                    <p class="text-muted">Configure optional integrations.</p>
+                    <div id="integrations-result"></div>
+                    <form hx-post="/setup/step/integrations" hx-target="#integrations-result" hx-swap="innerHTML">
+                        <h6>Pipedrive CRM</h6>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="pipedrive_mock_mode" name="pipedrive_mock_mode" checked onchange="togglePipedrive(this)">
+                            <label class="form-check-label" for="pipedrive_mock_mode">Use mock Pipedrive data</label>
+                        </div>
+                        <div id="pipedrive-config" class="d-none">
+                            <div class="mb-3">
+                                <label class="form-label">Pipedrive API Token</label>
+                                <input type="password" class="form-control" name="pipedrive_api_token">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Save &amp; Continue</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Step 4: Finish -->
+            <div id="step-4" class="card shadow d-none">
+                <div class="card-body p-4 text-center">
+                    <h4 class="card-title mb-3"><i class="bi bi-check-circle text-success"></i> Setup Complete!</h4>
+                    <p class="text-muted">Everything is configured. You can change settings anytime from Admin &gt; Settings.</p>
+                    <form method="POST" action="/setup/step/finish">
+                        <button type="submit" class="btn btn-success btn-lg w-100">Launch CLM-lite</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleAIConfig(el) {
+            document.getElementById('ai-config').classList.toggle('d-none', el.checked);
+        }
+        function toggleProviderFields(el) {
+            document.getElementById('anthropic-fields').classList.toggle('d-none', el.value !== 'anthropic');
+            document.getElementById('openrouter-fields').classList.toggle('d-none', el.value !== 'openrouter');
+        }
+        function togglePipedrive(el) {
+            document.getElementById('pipedrive-config').classList.toggle('d-none', el.checked);
+        }
+
+        // Watch for step transitions to update indicators
+        const observer = new MutationObserver(function() {
+            for (let i = 1; i <= 4; i++) {
+                const step = document.getElementById('step-' + i);
+                const dot = document.getElementById('dot-' + i);
+                if (!step.classList.contains('d-none')) {
+                    dot.className = 'step-dot active';
+                    for (let j = 1; j < i; j++) {
+                        document.getElementById('dot-' + j).className = 'step-dot done';
+                    }
+                }
+            }
+        });
+        for (let i = 1; i <= 4; i++) {
+            observer.observe(document.getElementById('step-' + i), {attributes: true, attributeFilter: ['class']});
+        }
+    </script>
+</body>
+</html>

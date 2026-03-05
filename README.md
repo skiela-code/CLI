@@ -5,7 +5,9 @@ A lightweight Contract Lifecycle Management platform with AI-powered document ge
 ## Features
 
 - **Template Management** — Upload DOCX templates with `{{PLACEHOLDER}}` tokens, map to deal fields / content blocks / AI
-- **Document Generation** — Async document generation with Claude AI narrative sections
+- **Document Generation** — Async document generation with AI narrative sections (Claude / OpenRouter / Mock)
+- **LLM Router** — Primary/fallback provider routing with circuit breaker and metrics
+- **Setup Wizard** — Browser-based onboarding for first-time setup (admin account, AI provider, integrations)
 - **Pricing Engine** — Structured pricing tables with Good/Better/Best tiers
 - **Pipedrive Integration** — Sync deals, attach generated documents
 - **Approval Workflow** — Single-approver per document version with notifications
@@ -43,12 +45,17 @@ This will:
 - Seed sample data (admin user, templates, blocks, pricing)
 - Start the FastAPI app on port 8000
 
-### 3. Access the Web UI
+### 3. Complete the Setup Wizard
 
-Open **http://localhost:8000** in your browser.
+Open **http://localhost:8000** — you'll be redirected to the setup wizard:
+1. Create an admin account
+2. Configure AI provider (or use mock mode)
+3. Configure integrations (Pipedrive mock/real)
+4. Launch the app
 
 ### 4. Login
 
+- **Setup wizard admin**: Use the account you created during setup
 - **Dev login** (default): Use `admin@clm.local` — pre-seeded admin account
 - **OIDC**: Configure `OIDC_*` env vars for Azure AD / Google
 
@@ -73,7 +80,7 @@ docker compose exec app pytest -v
 - **Backend**: Python 3.12 + FastAPI (fully async)
 - **Database**: PostgreSQL 16 + SQLAlchemy async + asyncpg
 - **UI**: Jinja2 + HTMX + Bootstrap 5 (server-rendered, zero build step)
-- **AI**: Claude API via httpx (with mock mode)
+- **AI**: LLM Router with Claude / OpenRouter / Mock providers, circuit breaker, fallback
 - **CRM**: Pipedrive REST API via httpx (with mock mode)
 - **Auth**: OIDC (authlib) + dev login fallback
 - **Jobs**: asyncio.create_task (in-process, no Redis needed)
@@ -85,6 +92,8 @@ See `/docs` for detailed documentation:
 - [API Reference](docs/api.md)
 - [Security](docs/security.md)
 - [Runbook](docs/runbook.md)
+- [Onboarding Guide](docs/ONBOARDING.md)
+- [Configuration Reference](docs/CONFIGURATION.md)
 - ADRs: [Background Jobs](docs/adr/001-background-job-approach.md) | [Auth](docs/adr/002-auth-approach.md) | [UI](docs/adr/003-ui-approach.md)
 
 ## Project Structure
@@ -109,7 +118,11 @@ CLI/
 │   │   └── logging.py          # Structured logging
 │   ├── integrations/
 │   │   ├── pipedrive.py        # Async Pipedrive client + mock
-│   │   └── claude_ai.py        # Claude provider adapter + mock
+│   │   ├── base_provider.py    # Abstract AI provider interface
+│   │   ├── claude_ai.py        # Anthropic Claude provider
+│   │   ├── openrouter_provider.py  # OpenRouter provider
+│   │   ├── mock_provider.py    # Mock AI provider
+│   │   └── llm_router.py       # LLM routing + fallback + circuit breaker
 │   ├── models/
 │   │   └── models.py           # SQLAlchemy async models
 │   ├── services/
