@@ -1,0 +1,126 @@
+{% extends "layouts/base.html" %}
+{% block title %}Admin Settings — CLM-lite{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-gear"></i> Admin Settings</h2>
+    <a href="/admin/health" class="btn btn-outline-secondary btn-sm"><i class="bi bi-heart-pulse"></i> Health</a>
+</div>
+
+<ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-ai">AI Providers</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-metrics">Metrics</button>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <!-- AI Providers Tab -->
+    <div class="tab-pane fade show active" id="tab-ai">
+        <form method="POST" action="/admin/settings/ai">
+            <div class="card mb-3">
+                <div class="card-header"><strong>Primary Provider</strong></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Provider</label>
+                        <select class="form-select" name="ai_primary_provider" onchange="toggleAdminProvider(this, 'primary')">
+                            <option value="mock" {% if settings.get('ai_primary_provider') == 'mock' %}selected{% endif %}>Mock</option>
+                            <option value="anthropic" {% if settings.get('ai_primary_provider') == 'anthropic' %}selected{% endif %}>Anthropic (Claude)</option>
+                            <option value="openrouter" {% if settings.get('ai_primary_provider') == 'openrouter' %}selected{% endif %}>OpenRouter</option>
+                        </select>
+                    </div>
+                    <div id="primary-anthropic" class="{% if settings.get('ai_primary_provider') != 'anthropic' %}d-none{% endif %}">
+                        <div class="mb-3">
+                            <label class="form-label">API Key</label>
+                            <input type="password" class="form-control" name="anthropic_api_key" value="{{ settings.get('anthropic_api_key', '') }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Model</label>
+                            <input type="text" class="form-control" name="anthropic_model" value="{{ settings.get('anthropic_model', 'claude-sonnet-4-20250514') }}">
+                        </div>
+                    </div>
+                    <div id="primary-openrouter" class="{% if settings.get('ai_primary_provider') != 'openrouter' %}d-none{% endif %}">
+                        <div class="mb-3">
+                            <label class="form-label">API Key</label>
+                            <input type="password" class="form-control" name="openrouter_api_key" value="{{ settings.get('openrouter_api_key', '') }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Model</label>
+                            <input type="text" class="form-control" name="openrouter_model" value="{{ settings.get('openrouter_model', '') }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Base URL</label>
+                            <input type="text" class="form-control" name="openrouter_base_url" value="{{ settings.get('openrouter_base_url', '') }}">
+                        </div>
+                    </div>
+                    <div>
+                        <span id="test-primary-result"></span>
+                        <button type="button" class="btn btn-sm btn-outline-info"
+                            hx-post="/admin/settings/ai/test"
+                            hx-target="#test-primary-result"
+                            hx-include="[name='ai_primary_provider']"
+                            hx-vals='{"provider": ""}'>
+                            <i class="bi bi-lightning"></i> Test
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header"><strong>Fallback Provider</strong></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Provider</label>
+                        <select class="form-select" name="ai_fallback_provider">
+                            <option value="mock" {% if settings.get('ai_fallback_provider', 'mock') == 'mock' %}selected{% endif %}>Mock</option>
+                            <option value="anthropic" {% if settings.get('ai_fallback_provider') == 'anthropic' %}selected{% endif %}>Anthropic</option>
+                            <option value="openrouter" {% if settings.get('ai_fallback_provider') == 'openrouter' %}selected{% endif %}>OpenRouter</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Save Settings</button>
+        </form>
+    </div>
+
+    <!-- Metrics Tab -->
+    <div class="tab-pane fade" id="tab-metrics">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h3>{{ total_ai_calls }}</h3>
+                        <p class="text-muted">Total AI Calls</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h3>{{ fallback_ai_calls }}</h3>
+                        <p class="text-muted">Fallback Used</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h3>{% if total_ai_calls > 0 %}{{ "%.1f"|format(fallback_ai_calls / total_ai_calls * 100) }}%{% else %}0%{% endif %}</h3>
+                        <p class="text-muted">Fallback Rate</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleAdminProvider(el, role) {
+    document.getElementById(role + '-anthropic').classList.toggle('d-none', el.value !== 'anthropic');
+    document.getElementById(role + '-openrouter').classList.toggle('d-none', el.value !== 'openrouter');
+}
+</script>
+{% endblock %}

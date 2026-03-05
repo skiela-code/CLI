@@ -21,7 +21,9 @@ settings = get_settings()
 
 app = FastAPI(title="CLM-lite + Proposal Generator", version="1.0.0")
 
-# Middleware
+# Middleware (order matters: SetupMiddleware added first so it runs after SessionMiddleware)
+from app.core.setup_middleware import SetupMiddleware
+app.add_middleware(SetupMiddleware)
 app.add_middleware(SessionMiddleware, secret_key=settings.app_secret_key)
 
 # Static files
@@ -40,6 +42,8 @@ from app.api.documents_routes import router as documents_router
 from app.api.approvals_routes import router as approvals_router
 from app.api.search_routes import router as search_router
 from app.api.notifications_routes import router as notifications_router
+from app.api.setup_routes import router as setup_router
+from app.api.admin_routes import router as admin_router
 
 app.include_router(auth_router)
 app.include_router(deals_router)
@@ -50,6 +54,8 @@ app.include_router(documents_router)
 app.include_router(approvals_router)
 app.include_router(search_router)
 app.include_router(notifications_router)
+app.include_router(setup_router)
+app.include_router(admin_router)
 
 
 @app.get("/")

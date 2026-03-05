@@ -17,6 +17,12 @@ from app.services.template_engine import create_sample_template
 
 async def seed():
     async with async_session_factory() as db:
+        # If setup wizard has already run, don't seed
+        from app.services.settings_service import is_setup_complete
+        if await is_setup_complete(db):
+            log.info("seed_skipped", reason="setup already complete")
+            return
+
         # Check if already seeded
         result = await db.execute(select(User).limit(1))
         if result.scalar_one_or_none():

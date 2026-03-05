@@ -107,6 +107,16 @@ async def dev_login_submit(request: Request, db: AsyncSession = Depends(get_db))
         db.add(user)
         await db.flush()
 
+    # If user has a password (created via setup wizard), verify it
+    password = form.get("password", "")
+    if user.password_hash and password:
+        from app.core.password import verify_password
+        if not verify_password(str(password), user.password_hash):
+            from app.main import templates
+            return templates.TemplateResponse("pages/dev_login.html", {
+                "request": request, "error": "Invalid password",
+            })
+
     request.session["user_id"] = str(user.id)
     db.add(AuditLog(user_id=user.id, action="login", details={"method": "dev_login"}))
     await db.commit()
