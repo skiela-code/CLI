@@ -1,0 +1,63 @@
+{% extends "layouts/base.html" %}
+{% block title %}Upload Documents — CLM-lite{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-upload"></i> Upload Documents</h2>
+    <a href="/library" class="btn btn-outline-secondary btn-sm">Back to Library</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST" action="/library/upload" enctype="multipart/form-data" id="upload-form">
+            <div class="border border-2 border-dashed rounded p-5 text-center mb-3" id="drop-zone"
+                 ondrop="handleDrop(event)" ondragover="event.preventDefault()" ondragenter="this.classList.add('border-primary')" ondragleave="this.classList.remove('border-primary')">
+                <i class="bi bi-cloud-arrow-up" style="font-size: 3rem;"></i>
+                <p class="mt-2 mb-1">Drag & drop files here</p>
+                <p class="text-muted small">PDF, DOCX, or ZIP archive</p>
+                <label class="btn btn-outline-primary btn-sm">
+                    Browse Files
+                    <input type="file" name="files" multiple accept=".pdf,.docx,.zip" class="d-none" onchange="updateFileList(this)">
+                </label>
+            </div>
+
+            <div id="file-list" class="mb-3"></div>
+
+            <button type="submit" class="btn btn-primary" id="upload-btn" disabled>
+                <i class="bi bi-upload"></i> Upload & Process
+            </button>
+            <span class="text-muted ms-2 small">Files will be processed through the import pipeline (text extraction, classification, metadata extraction, company matching).</span>
+        </form>
+    </div>
+</div>
+
+<script>
+function handleDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('border-primary');
+    const input = document.querySelector('input[type=file]');
+    input.files = e.dataTransfer.files;
+    updateFileList(input);
+}
+
+function updateFileList(input) {
+    const list = document.getElementById('file-list');
+    const btn = document.getElementById('upload-btn');
+    list.innerHTML = '';
+    if (input.files.length > 0) {
+        btn.disabled = false;
+        const ul = document.createElement('ul');
+        ul.className = 'list-group';
+        for (const f of input.files) {
+            const li = document.createElement('li');
+            li.className = 'list-group-item d-flex justify-content-between align-items-center';
+            li.innerHTML = `<span><i class="bi bi-file-earmark"></i> ${f.name}</span><span class="badge bg-secondary">${(f.size / 1024).toFixed(1)} KB</span>`;
+            ul.appendChild(li);
+        }
+        list.appendChild(ul);
+    } else {
+        btn.disabled = true;
+    }
+}
+</script>
+{% endblock %}

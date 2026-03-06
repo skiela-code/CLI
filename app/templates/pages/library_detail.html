@@ -1,0 +1,177 @@
+{% extends "layouts/base.html" %}
+{% block title %}{{ doc.title }} — Library — CLM-lite{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-file-earmark"></i> {{ doc.title }}</h2>
+    <div>
+        {% if doc.file_path %}
+        <a href="/library/{{ doc.id }}/download" class="btn btn-outline-primary btn-sm"><i class="bi bi-download"></i> Download</a>
+        {% endif %}
+        <a href="/library" class="btn btn-outline-secondary btn-sm">Back</a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Document Info -->
+    <div class="col-md-8">
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between">
+                <strong>Document Info</strong>
+                <span class="badge bg-{{ 'success' if doc.import_status == 'approved' else 'warning' if doc.import_status == 'queued' else 'secondary' }}">
+                    {{ doc.import_status or 'N/A' }}
+                </span>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/library/{{ doc.id }}/metadata">
+                    <div class="row mb-2">
+                        <div class="col-md-6">
+                            <label class="form-label">Title</label>
+                            <input type="text" class="form-control form-control-sm" name="title" value="{{ doc.title }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Type</label>
+                            <select class="form-select form-select-sm" name="doc_type">
+                                {% for dt in doc_types %}
+                                <option value="{{ dt }}" {% if doc.doc_type.value == dt %}selected{% endif %}>{{ dt | replace('_', ' ') | title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Company</label>
+                            <input type="text" class="form-control form-control-sm" name="company_name" value="{{ doc.company_name or '' }}">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-save"></i> Save</button>
+                </form>
+            </div>
+        </div>
+
+        {% if contract_metadata %}
+        <div class="card mb-3">
+            <div class="card-header"><strong>Contract Metadata</strong></div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <small class="text-muted">Effective Date</small>
+                        <p>{{ contract_metadata.effective_date or '—' }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">Term</small>
+                        <p>{{ contract_metadata.initial_term_months or '?' }} months</p>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">Notice Period</small>
+                        <p>{{ contract_metadata.notice_period_days or '?' }} days</p>
+                    </div>
+                </div>
+                {% if renewal %}
+                <div class="row">
+                    <div class="col-md-3">
+                        <small class="text-muted">Term End</small>
+                        <p>{{ renewal.current_term_end or '—' }}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <small class="text-muted">Next Renewal</small>
+                        <p>{{ renewal.next_renewal_date or '—' }}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <small class="text-muted">Cancel By</small>
+                        <p>{{ renewal.cancel_by_date or '—' }}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <small class="text-muted">Status</small>
+                        <p><span class="badge bg-{{ 'success' if renewal.renewal_status == 'active' else 'warning' if renewal.renewal_status == 'expiring_soon' else 'danger' if renewal.renewal_status == 'expired' else 'secondary' }}">{{ renewal.renewal_status }}</span></p>
+                    </div>
+                </div>
+                {% endif %}
+                <small class="text-muted">Auto-renew: {{ 'Yes' if contract_metadata.auto_renew else 'No' }} | Status: {{ contract_metadata.metadata_status }}</small>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Text Preview -->
+        {% if doc.extracted_text %}
+        <div class="card mb-3">
+            <div class="card-header"><strong>Extracted Text</strong> <small class="text-muted">(preview)</small></div>
+            <div class="card-body">
+                <pre class="small" style="max-height: 300px; overflow-y: auto; white-space: pre-wrap;">{{ doc.extracted_text[:5000] }}</pre>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-md-4">
+        <!-- Services -->
+        <div class="card mb-3">
+            <div class="card-header"><strong>Services</strong></div>
+            <div class="card-body">
+                {% if services %}
+                {% for ds, sc in services %}
+                <span class="badge bg-info me-1 mb-1">{{ sc.name }}
+                    {% if ds.confidence %}<small>({{ "%.0f"|format(ds.confidence * 100) }}%)</small>{% endif %}
+                </span>
+                {% endfor %}
+                {% else %}
+                <span class="text-muted">No services detected</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Relationships -->
+        <div class="card mb-3">
+            <div class="card-header"><strong>Related Documents</strong></div>
+            <div class="card-body">
+                {% for rel, rdoc in parents %}
+                <div class="mb-1">
+                    <small class="text-muted">Parent ({{ rel.relationship_type }}):</small>
+                    <a href="/library/{{ rdoc.id }}">{{ rdoc.title }}</a>
+                </div>
+                {% endfor %}
+                {% for rel, rdoc in children %}
+                <div class="mb-1">
+                    <small class="text-muted">{{ rel.relationship_type | title }}:</small>
+                    <a href="/library/{{ rdoc.id }}">{{ rdoc.title }}</a>
+                </div>
+                {% endfor %}
+                {% if not parents and not children %}
+                <span class="text-muted">No relationships</span>
+                {% endif %}
+
+                <hr>
+                <form method="POST" action="/library/{{ doc.id }}/relate" class="mt-2">
+                    <div class="input-group input-group-sm">
+                        <select class="form-select form-select-sm" name="related_id" required>
+                            <option value="">Link document...</option>
+                            {% for od in other_docs %}
+                            <option value="{{ od.id }}">{{ od.title }}</option>
+                            {% endfor %}
+                        </select>
+                        <select class="form-select form-select-sm" name="relationship_type" style="max-width: 100px;">
+                            <option value="annex">Annex</option>
+                            <option value="amendment">Amendment</option>
+                            <option value="renewal">Renewal</option>
+                        </select>
+                        <button class="btn btn-outline-primary btn-sm" type="submit"><i class="bi bi-link"></i></button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Actions for queued docs -->
+        {% if doc.import_status == 'queued' %}
+        <div class="card">
+            <div class="card-body d-grid gap-2">
+                <form method="POST" action="/library/queue/{{ doc.id }}/approve">
+                    <button class="btn btn-success w-100"><i class="bi bi-check"></i> Approve</button>
+                </form>
+                <form method="POST" action="/library/queue/{{ doc.id }}/reject">
+                    <button class="btn btn-outline-danger w-100"><i class="bi bi-x"></i> Reject</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

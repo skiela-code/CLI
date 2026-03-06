@@ -1,11 +1,12 @@
 """SQLAlchemy async models for CLM-lite."""
 
 import uuid
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional
 
 from sqlalchemy import (
     Boolean,
+    Date,
     DateTime,
     Enum as SAEnum,
     Float,
@@ -39,6 +40,7 @@ class DocType(str, enum.Enum):
     NDA = "nda"
     PURCHASE_ANNEX = "purchase_annex"
     COMMERCIAL_OFFER = "commercial_offer"
+    OTHER = "other"
 
 
 class DocStatus(str, enum.Enum):
@@ -211,12 +213,21 @@ class Document(Base):
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     doc_type: Mapped[DocType] = mapped_column(SAEnum(DocType), nullable=False)
     status: Mapped[DocStatus] = mapped_column(SAEnum(DocStatus), default=DocStatus.DRAFT)
+    source: Mapped[str] = mapped_column(String(20), default="generated")  # "generated" | "uploaded"
     deal_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("deals.id"), nullable=True)
     template_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("templates.id"), nullable=True)
     pricing_table_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("pricing_tables.id"), nullable=True)
     created_by: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("users.id"), nullable=True)
     red_flags: Mapped[Optional[dict]] = mapped_column(JSONB)
     metadata_: Mapped[Optional[dict]] = mapped_column("metadata", JSONB, default=dict)
+    # Library fields (for uploaded documents)
+    file_path: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    extracted_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    company_name: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    company_match_confidence: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    classification_confidence: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    import_status: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)  # queued|approved|rejected
+    import_job_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("import_jobs.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -226,9 +237,15 @@ class Document(Base):
     created_by_user = relationship("User", back_populates="documents", foreign_keys=[created_by])
     versions = relationship("DocumentVersion", back_populates="document", cascade="all, delete-orphan")
     approvals = relationship("Approval", back_populates="document", cascade="all, delete-orphan")
+    contract_metadata = relationship("ContractMetadata", back_populates="document", uselist=False, cascade="all, delete-orphan")
+    services = relationship("DocumentService", back_populates="document", cascade="all, delete-orphan")
+    child_relationships = relationship("DocumentRelationship", foreign_keys="DocumentRelationship.parent_id", back_populates="parent", cascade="all, delete-orphan")
+    parent_relationships = relationship("DocumentRelationship", foreign_keys="DocumentRelationship.child_id", back_populates="child", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("ix_documents_search", "search_vector", postgresql_using="gin"),
+        Index("ix_documents_company", "company_name"),
+        Index("ix_documents_source", "source"),
     )
 
 
@@ -310,3 +327,77 @@ class AICall(Base):
     fallback_used: Mapped[bool] = mapped_column(Boolean, default=False)
     fallback_reason: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+# ---------------------------------------------------------------------------
+# Document Library models
+# ---------------------------------------------------------------------------
+
+
+class ImportJob(Base):
+    __tablename__ = "import_jobs"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    total_files: Mapped[int] = mapped_column(Integer, default=0)
+    processed_files: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(20), default="processing")  # processing|completed|failed
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+
+class ContractMetadata(Base):
+    __tablename__ = "contract_metadata"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    document_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"), unique=True)
+    effective_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    signed_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    initial_term_months: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    renewal_term_months: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    auto_renew: Mapped[bool] = mapped_column(Boolean, default=True)
+    notice_period_days: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    pricing_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    extraction_confidence: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    extraction_snippets: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    metadata_status: Mapped[str] = mapped_column(String(20), default="imported")  # imported|auto_tagged|needs_review|approved
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    document = relationship("Document", back_populates="contract_metadata")
+
+
+class ServiceCatalog(Base):
+    __tablename__ = "service_catalog"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class DocumentService(Base):
+    __tablename__ = "document_services"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    document_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"))
+    service_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("service_catalog.id", ondelete="CASCADE"))
+    confidence: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    source_snippet: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    document = relationship("Document", back_populates="services")
+    service = relationship("ServiceCatalog")
+
+
+class DocumentRelationship(Base):
+    __tablename__ = "document_relationships"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    parent_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"))
+    child_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"))
+    relationship_type: Mapped[str] = mapped_column(String(50), default="annex")  # annex|amendment|renewal
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    parent = relationship("Document", foreign_keys=[parent_id], back_populates="child_relationships")
+    child = relationship("Document", foreign_keys=[child_id], back_populates="parent_relationships")

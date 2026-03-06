@@ -1,0 +1,199 @@
+{% extends "layouts/base.html" %}
+{% block title %}{{ org_name }} — CLM-lite{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2><i class="bi bi-building"></i> {{ org_name }}</h2>
+    <a href="/customers" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> All Customers</a>
+</div>
+
+<!-- Alerts -->
+{% for alert in alerts %}
+<div class="alert alert-{{ alert.level }} py-2 mb-2">
+    <i class="bi bi-exclamation-triangle"></i> {{ alert.message }}
+</div>
+{% endfor %}
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'overview' %}active{% endif %}" href="?tab=overview">Overview</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'documents' %}active{% endif %}" href="?tab=documents">Documents ({{ all_docs|length }})</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'timeline' %}active{% endif %}" href="?tab=timeline">Timeline</a>
+    </li>
+</ul>
+
+{% if tab == 'overview' %}
+<!-- Overview Tab -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-file-earmark-text"></i> Current Contract</div>
+            <div class="card-body">
+                {% if current_contract %}
+                <p><strong>{{ current_contract.title }}</strong></p>
+                {% if contract_metadata %}
+                <table class="table table-sm mb-0">
+                    {% if contract_metadata.effective_date %}
+                    <tr><td class="text-muted">Effective Date</td><td>{{ contract_metadata.effective_date }}</td></tr>
+                    {% endif %}
+                    {% if contract_metadata.signed_date %}
+                    <tr><td class="text-muted">Signed Date</td><td>{{ contract_metadata.signed_date }}</td></tr>
+                    {% endif %}
+                    {% if contract_metadata.initial_term_months %}
+                    <tr><td class="text-muted">Initial Term</td><td>{{ contract_metadata.initial_term_months }} months</td></tr>
+                    {% endif %}
+                    {% if contract_metadata.auto_renew %}
+                    <tr><td class="text-muted">Auto-Renew</td><td>Yes ({{ contract_metadata.renewal_term_months or contract_metadata.initial_term_months }} months)</td></tr>
+                    {% endif %}
+                    {% if contract_metadata.notice_period_days %}
+                    <tr><td class="text-muted">Notice Period</td><td>{{ contract_metadata.notice_period_days }} days</td></tr>
+                    {% endif %}
+                </table>
+                {% endif %}
+                <a href="/library/{{ current_contract.id }}" class="btn btn-sm btn-outline-primary mt-2">View Document</a>
+                {% else %}
+                <p class="text-muted mb-0">No active contract on file.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-calendar-check"></i> Renewal</div>
+            <div class="card-body">
+                {% if renewal_info and renewal_info.current_term_end %}
+                <table class="table table-sm mb-0">
+                    <tr><td class="text-muted">Current Term End</td><td>{{ renewal_info.current_term_end }}</td></tr>
+                    {% if renewal_info.next_renewal_date %}
+                    <tr><td class="text-muted">Next Renewal</td><td>{{ renewal_info.next_renewal_date }}</td></tr>
+                    {% endif %}
+                    {% if renewal_info.cancel_by_date %}
+                    <tr><td class="text-muted">Cancel By</td><td>{{ renewal_info.cancel_by_date }}</td></tr>
+                    {% endif %}
+                    <tr>
+                        <td class="text-muted">Status</td>
+                        <td>
+                            {% if renewal_info.renewal_status == 'active' %}
+                            <span class="badge bg-success">Active</span>
+                            {% elif renewal_info.renewal_status == 'expiring_soon' %}
+                            <span class="badge bg-warning text-dark">Expiring Soon</span>
+                            {% elif renewal_info.renewal_status == 'expired' %}
+                            <span class="badge bg-danger">Expired</span>
+                            {% else %}
+                            <span class="badge bg-info">{{ renewal_info.renewal_status|title }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+                {% else %}
+                <p class="text-muted mb-0">No renewal data available.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-gear"></i> Services</div>
+            <div class="card-body">
+                {% if services %}
+                {% for svc in services %}
+                <span class="badge bg-primary me-1 mb-1">{{ svc.name }}</span>
+                {% endfor %}
+                {% else %}
+                <p class="text-muted mb-0">No services identified.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Deals -->
+{% if deals %}
+<div class="card mb-3">
+    <div class="card-header"><i class="bi bi-briefcase"></i> Deals</div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>Deal</th><th>Stage</th><th>Value</th><th>Created</th></tr></thead>
+            <tbody>
+                {% for deal in deals %}
+                <tr>
+                    <td><a href="/deals/{{ deal.id }}">{{ deal.title }}</a></td>
+                    <td><span class="badge bg-secondary">{{ deal.stage.value if deal.stage else '' }}</span></td>
+                    <td>{{ "€{:,.0f}".format(deal.value) if deal.value else '—' }}</td>
+                    <td>{{ deal.created_at.strftime('%Y-%m-%d') if deal.created_at else '' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% elif tab == 'documents' %}
+<!-- Documents Tab -->
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead>
+            <tr><th>Title</th><th>Type</th><th>Source</th><th>Date</th><th></th></tr>
+        </thead>
+        <tbody>
+            {% for doc in all_docs %}
+            <tr>
+                <td>
+                    {% if doc.source == 'uploaded' %}
+                    <a href="/library/{{ doc.id }}">{{ doc.title }}</a>
+                    {% else %}
+                    <a href="/documents/{{ doc.id }}">{{ doc.title }}</a>
+                    {% endif %}
+                </td>
+                <td><span class="badge bg-secondary">{{ doc.doc_type.value if doc.doc_type else '' }}</span></td>
+                <td>
+                    {% if doc.source == 'uploaded' %}
+                    <span class="badge bg-info">Uploaded</span>
+                    {% else %}
+                    <span class="badge bg-primary">Generated</span>
+                    {% endif %}
+                </td>
+                <td>{{ doc.created_at.strftime('%Y-%m-%d') if doc.created_at else '' }}</td>
+                <td>
+                    {% if doc.source == 'uploaded' %}
+                    <a href="/library/{{ doc.id }}" class="btn btn-sm btn-outline-primary">View</a>
+                    {% else %}
+                    <a href="/documents/{{ doc.id }}" class="btn btn-sm btn-outline-primary">View</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% elif tab == 'timeline' %}
+<!-- Timeline Tab -->
+<div class="list-group">
+    {% for doc in all_docs %}
+    <div class="list-group-item">
+        <div class="d-flex justify-content-between">
+            <div>
+                <strong>{{ doc.title }}</strong>
+                <span class="badge bg-secondary ms-2">{{ doc.doc_type.value if doc.doc_type else '' }}</span>
+                {% if doc.source == 'uploaded' %}
+                <span class="badge bg-info ms-1">Uploaded</span>
+                {% else %}
+                <span class="badge bg-primary ms-1">Generated</span>
+                {% endif %}
+            </div>
+            <small class="text-muted">{{ doc.created_at.strftime('%Y-%m-%d') if doc.created_at else '' }}</small>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% if not all_docs %}
+<p class="text-muted text-center py-3">No documents yet.</p>
+{% endif %}
+{% endif %}
+{% endblock %}

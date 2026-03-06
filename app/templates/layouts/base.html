@@ -64,6 +64,21 @@
                         </a>
                     </li>
                     <li class="nav-item mb-1">
+                        <a class="nav-link text-white {% if '/library' in request.url.path %}active{% endif %}" href="/library">
+                            <i class="bi bi-archive"></i> Library
+                        </a>
+                    </li>
+                    <li class="nav-item mb-1">
+                        <a class="nav-link text-white {% if '/customers' in request.url.path %}active{% endif %}" href="/customers">
+                            <i class="bi bi-people"></i> Customers
+                        </a>
+                    </li>
+                    <li class="nav-item mb-1">
+                        <a class="nav-link text-white {% if '/library/renewals' in request.url.path %}active{% endif %}" href="/library/renewals">
+                            <i class="bi bi-calendar-check"></i> Renewals
+                        </a>
+                    </li>
+                    <li class="nav-item mb-1">
                         <a class="nav-link text-white {% if '/search' in request.url.path %}active{% endif %}" href="/search">
                             <i class="bi bi-search"></i> Search
                         </a>
@@ -112,6 +127,9 @@
                                 <li><a class="nav-link text-white" href="/pricing">Pricing</a></li>
                                 <li><a class="nav-link text-white" href="/documents">Documents</a></li>
                                 <li><a class="nav-link text-white" href="/approvals">Approvals</a></li>
+                                <li><a class="nav-link text-white" href="/library">Library</a></li>
+                                <li><a class="nav-link text-white" href="/customers">Customers</a></li>
+                                <li><a class="nav-link text-white" href="/library/renewals">Renewals</a></li>
                                 <li><a class="nav-link text-white" href="/search">Search</a></li>
                                 <li><a class="nav-link text-white" href="/auth/logout">Logout</a></li>
                             </ul>
