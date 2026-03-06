@@ -1,0 +1,77 @@
+{% extends "layouts/base.html" %}
+{% block title %}Import Queue — CLM-lite{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-inbox"></i> Import Queue</h2>
+    <a href="/library" class="btn btn-outline-secondary btn-sm">Back to Library</a>
+</div>
+
+{% if documents %}
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>File</th>
+                <th>Company</th>
+                <th>Type</th>
+                <th>Renewal</th>
+                <th>Confidence</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for doc in documents %}
+            <tr>
+                <td>
+                    <a href="/library/{{ doc.id }}">{{ doc.title }}</a>
+                </td>
+                <td>
+                    {% if doc.company_name %}
+                    {{ doc.company_name }}
+                    {% if doc.company_match_confidence %}
+                    <small class="text-muted">({{ "%.0f"|format(doc.company_match_confidence * 100) }}%)</small>
+                    {% endif %}
+                    {% else %}
+                    <span class="text-muted">Unknown</span>
+                    {% endif %}
+                </td>
+                <td><span class="badge bg-secondary">{{ doc.doc_type.value if doc.doc_type else '' }}</span></td>
+                <td>
+                    {% set meta = doc_metadata.get(doc.id|string) %}
+                    {% if meta and meta.renewal %}
+                    {{ meta.renewal.current_term_end or '—' }}
+                    {% else %}
+                    —
+                    {% endif %}
+                </td>
+                <td>
+                    {% if doc.classification_confidence %}
+                    <span class="badge {% if doc.classification_confidence >= 0.7 %}bg-success{% elif doc.classification_confidence >= 0.4 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                        {{ "%.0f"|format(doc.classification_confidence * 100) }}%
+                    </span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <form method="POST" action="/library/queue/{{ doc.id }}/approve" class="d-inline">
+                            <button class="btn btn-success btn-sm" title="Approve"><i class="bi bi-check"></i></button>
+                        </form>
+                        <form method="POST" action="/library/queue/{{ doc.id }}/reject" class="d-inline">
+                            <button class="btn btn-danger btn-sm" title="Reject"><i class="bi bi-x"></i></button>
+                        </form>
+                        <a href="/library/{{ doc.id }}" class="btn btn-outline-primary btn-sm" title="Review"><i class="bi bi-pencil"></i></a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="text-center text-muted py-5">
+    <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+    <p class="mt-2">No documents waiting for review.</p>
+</div>
+{% endif %}
+{% endblock %}

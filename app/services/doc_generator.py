@@ -105,6 +105,28 @@ async def _generate_document(document_id: str, options: dict[str, Any]) -> None:
                     "value": deal.value if deal else 0,
                 }
 
+                # Load library context for this company
+                library_context = ""
+                if deal and deal.org_name:
+                    lib_docs_q = await db.execute(
+                        select(Document)
+                        .where(
+                            Document.source == "uploaded",
+                            Document.company_name == deal.org_name,
+                            Document.import_status == "approved",
+                        )
+                        .order_by(Document.created_at.desc())
+                        .limit(5)
+                    )
+                    lib_docs = lib_docs_q.scalars().all()
+                    if lib_docs:
+                        library_context = "Existing documents for this client:\n"
+                        for ld in lib_docs:
+                            dt = ld.doc_type if isinstance(ld.doc_type, str) else ld.doc_type.value
+                            library_context += f"  - {ld.title} ({dt})\n"
+                            if ld.extracted_text:
+                                library_context += f"    Summary: {ld.extracted_text[:300]}...\n"
+
                 for ph in placeholders_q.scalars():
                     value = ph.default_value or ""
 
@@ -137,6 +159,8 @@ async def _generate_document(document_id: str, options: dict[str, Any]) -> None:
                         user_msg = f"{prompt}\n\nContext:\n"
                         for ctx_k, ctx_v in deal_ctx.items():
                             user_msg += f"  {ctx_k}: {ctx_v}\n"
+                        if library_context:
+                            user_msg += f"\n{library_context}\n"
                         value = await router.generate(system, user_msg)
                         generated_sections[ph.token] = value
 

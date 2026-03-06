@@ -57,6 +57,13 @@ app.include_router(notifications_router)
 app.include_router(setup_router)
 app.include_router(admin_router)
 
+from app.api.library_routes import router as library_router
+from app.api.customer_routes import router as customer_router
+from app.api.services_routes import router as services_router
+app.include_router(library_router)
+app.include_router(customer_router)
+app.include_router(services_router)
+
 
 @app.get("/")
 async def index(request: Request, user: User = Depends(get_optional_user), db: AsyncSession = Depends(get_db)):

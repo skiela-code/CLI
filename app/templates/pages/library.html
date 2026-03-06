@@ -1,0 +1,103 @@
+{% extends "layouts/base.html" %}
+{% block title %}Document Library — CLM-lite{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-archive"></i> Document Library</h2>
+    <div>
+        <a href="/library/queue" class="btn btn-outline-warning btn-sm me-2"><i class="bi bi-inbox"></i> Import Queue</a>
+        <a href="/library/upload" class="btn btn-primary btn-sm"><i class="bi bi-upload"></i> Upload</a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="row mb-3">
+    <div class="col-md-3">
+        <select class="form-select form-select-sm" onchange="filterLibrary(this, 'doc_type')">
+            <option value="">All Types</option>
+            {% for dt in doc_types %}
+            <option value="{{ dt }}" {% if current_type == dt %}selected{% endif %}>{{ dt | replace('_', ' ') | title }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3">
+        <select class="form-select form-select-sm" onchange="filterLibrary(this, 'company')">
+            <option value="">All Companies</option>
+            {% for c in companies %}
+            <option value="{{ c }}" {% if current_company == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3">
+        <select class="form-select form-select-sm" onchange="filterLibrary(this, 'import_status')">
+            <option value="">All Statuses</option>
+            <option value="queued" {% if current_status == 'queued' %}selected{% endif %}>Queued</option>
+            <option value="approved" {% if current_status == 'approved' %}selected{% endif %}>Approved</option>
+            <option value="rejected" {% if current_status == 'rejected' %}selected{% endif %}>Rejected</option>
+        </select>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Type</th>
+                <th>Company</th>
+                <th>Status</th>
+                <th>Confidence</th>
+                <th>Uploaded</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for doc in documents %}
+            <tr>
+                <td><a href="/library/{{ doc.id }}">{{ doc.title }}</a></td>
+                <td><span class="badge bg-secondary">{{ doc.doc_type.value if doc.doc_type else '' }}</span></td>
+                <td>
+                    {% if doc.company_name %}
+                    <a href="/customers/{{ doc.company_name }}">{{ doc.company_name }}</a>
+                    {% else %}
+                    <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if doc.import_status == 'approved' %}
+                    <span class="badge bg-success">Approved</span>
+                    {% elif doc.import_status == 'queued' %}
+                    <span class="badge bg-warning text-dark">Queued</span>
+                    {% elif doc.import_status == 'rejected' %}
+                    <span class="badge bg-danger">Rejected</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if doc.classification_confidence %}
+                    {{ "%.0f"|format(doc.classification_confidence * 100) }}%
+                    {% endif %}
+                </td>
+                <td>{{ doc.created_at.strftime('%Y-%m-%d') if doc.created_at else '' }}</td>
+                <td><a href="/library/{{ doc.id }}" class="btn btn-sm btn-outline-primary">View</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if not documents %}
+<div class="text-center text-muted py-5">
+    <i class="bi bi-archive" style="font-size: 3rem;"></i>
+    <p class="mt-2">No documents in the library yet. <a href="/library/upload">Upload documents</a> to get started.</p>
+</div>
+{% endif %}
+
+<script>
+function filterLibrary(el, param) {
+    const url = new URL(window.location);
+    if (el.value) url.searchParams.set(param, el.value);
+    else url.searchParams.delete(param);
+    window.location = url;
+}
+</script>
+{% endblock %}

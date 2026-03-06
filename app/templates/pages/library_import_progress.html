@@ -1,0 +1,38 @@
+{% extends "layouts/base.html" %}
+{% block title %}Import Progress — CLM-lite{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-arrow-repeat"></i> Import Progress</h2>
+</div>
+
+<div class="card" {% if live_status == 'processing' %}hx-get="/library/import/{{ job.id }}" hx-trigger="every 3s" hx-swap="outerHTML"{% endif %}>
+    <div class="card-body">
+        <div class="d-flex justify-content-between mb-2">
+            <span>
+                {% if live_status == 'processing' %}
+                <span class="spinner-border spinner-border-sm me-1"></span> Processing...
+                {% elif live_status == 'completed' %}
+                <i class="bi bi-check-circle text-success"></i> Complete
+                {% else %}
+                <i class="bi bi-x-circle text-danger"></i> Failed
+                {% endif %}
+            </span>
+            <span>{{ job.processed_files }} / {{ job.total_files }} files</span>
+        </div>
+
+        <div class="progress mb-3">
+            {% set pct = (job.processed_files / job.total_files * 100) if job.total_files > 0 else 0 %}
+            <div class="progress-bar {% if live_status == 'completed' %}bg-success{% elif live_status == 'failed' %}bg-danger{% else %}progress-bar-striped progress-bar-animated{% endif %}"
+                 style="width: {{ pct }}%">{{ "%.0f"|format(pct) }}%</div>
+        </div>
+
+        {% if live_status == 'completed' %}
+        <div class="d-flex gap-2">
+            <a href="/library/queue" class="btn btn-warning"><i class="bi bi-inbox"></i> Review Import Queue</a>
+            <a href="/library" class="btn btn-outline-secondary">View Library</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

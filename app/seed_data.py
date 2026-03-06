@@ -10,6 +10,7 @@ from app.core.database import async_session_factory, engine
 from app.core.logging import log
 from app.models.models import (
     ContentBlock, Deal, PricingLineItem, PricingTable,
+    ServiceCatalog,
     Template, TemplatePlaceholder, PlaceholderSource, User, UserRole,
 )
 from app.services.template_engine import create_sample_template
@@ -169,6 +170,17 @@ async def seed():
                     ph.ai_prompt = f"Generate a professional {token_clean.replace('AI_', '').replace('_', ' ').lower()} section."
 
                 db.add(ph)
+
+        # 6. Sample service catalog entries
+        service_entries = [
+            ("Managed Kubernetes", "Container orchestration and management"),
+            ("Monitoring & Observability", "Infrastructure and application monitoring"),
+            ("Backup & Disaster Recovery", "Automated backup and recovery services"),
+            ("24/7 Support", "Round-the-clock technical support"),
+            ("Incident Response", "Security incident response and remediation"),
+        ]
+        for svc_name, svc_desc in service_entries:
+            db.add(ServiceCatalog(name=svc_name, description=svc_desc))
 
         await db.commit()
         log.info("seed_complete")
